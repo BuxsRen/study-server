@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package chat;
+
+option go_package="study-server/bootstrap/grpc/proto/chat/chat;chat";
+
+// 节点注册服务请求结构
+message Req {
+  string id = 1; // 用户id
+  string area = 2; // 加入的区域
+  string oldArea = 3; // 原来的区域
+  string gateway = 4; // 网关名称
+}
+
+// 节点注册服务请求结构
+message Res {
+  int64 code = 1;
+}
+
+message ReqMsg {
+  string content = 1; // 发送的内容
+  string fromId = 2; // 来自谁
+  string toId = 3; // 对方Id
+}
+
+service ChatGrpc {
+  // 客户端登录通知
+  rpc Login (Req) returns (Res);
+  // 客户端退出通知
+  rpc Logout (Req) returns (Res);
+  // 加入区域消息转发
+  rpc JoinArea(Req) returns (Res);
+  // 退出区域消息转发
+  rpc ExitArea(Req) returns (Res);
+  // 给用户所在区域广播消息
+  rpc SendMsgArea(ReqMsg) returns (Res);
+  // 给指定用户发送消息
+  rpc SendMsg(ReqMsg) returns (Res);
+}

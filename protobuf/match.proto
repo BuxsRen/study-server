@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package match;
+
+option go_package="study-server/bootstrap/grpc/proto/match/match;match";
+
+// 请求结构
+message Req {
+  string id = 1; // 用户id
+  string gateway = 2; // 网关编号
+  string area = 3; // 区域名称
+}
+
+// 响应结构
+message Res {
+  string id = 1; // 用户id
+  string area = 2; // 区域名称
+  string action = 3; // 操作事件
+  string group = 4; // 所在组
+  string gateway = 5; // 所属网关
+  string gameUrl = 6; // 分配的游戏服务器地址
+  string gameId = 7; // 分配的游戏服务器id
+}
+
+// 用户列表-节点
+message Node {
+  string id = 1; // 用户Id
+  string gateway = 2; // 所在网关
+}
+
+message List {
+  string area = 1; // 所在区域
+  string group = 2; // 所在组
+  string gameUrl = 6; // 分配的游戏服务器地址
+  string gameId = 7; // 分配的游戏服务器id
+  repeated Node id = 3;
+}
+
+service MatchGrpc {
+  // 切换区域/随机加入一个区域
+  rpc ChangeArea (Req) returns (Res);
+  // 加入到一个指定的区域
+  rpc JoinArea (Req) returns (Res);
+  // 用户退出当前所在区域
+  rpc ExitArea (Req) returns (Res);
+  // 获取用户区域内信息(获取区域内所有用户id)
+  rpc GetAreaInfo (Req) returns (List);
+  // 获取用户信息
+  rpc GetUserInfo (Req) returns (Res);
+}

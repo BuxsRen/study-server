@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package game;
+
+option go_package="study-server/bootstrap/grpc/proto/game/game;game";
+
+message Req {
+  string id=1;
+  string group=2;
+  string area=3;
+  string gateway=4;
+}
+
+message Res {
+  int64 code=1;
+}
+
+service GameGrpc {
+  // 设置玩家所在区域
+  rpc SetArea (Req) returns (Res);
+  // 删除玩家所在区域
+  rpc DelArea (Req) returns (Res);
+}

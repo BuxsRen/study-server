@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package gateway;
+
+option go_package="study-server/bootstrap/grpc/proto/gateway/gateway;gateway";
+
+message Msg {
+  string gateway=1; // 来自哪个网关
+  string fromId=2; // 来自哪个用户
+  string ToId=3; // 发给哪个用户
+  string content=4; // 需要发送的内容
+}
+
+message Res {
+  string code=1;
+  string msg=2;
+}
+
+service GatewayGrpc {
+  // 其他网关用户登录消息事件
+  rpc OnLogin (Msg) returns (Res);
+  // 其他网关用户退出消息事件
+  rpc OnLogout (Msg) returns (Res);
+  // 其他网关用户加入区域消息事件
+  rpc OnAreaJoin (Msg) returns (Res);
+  // 其他网关退出区域消息事件
+  rpc OnAreaExit (Msg) returns (Res);
+  // 其他网关用户发送消息事件
+  rpc OnSendMsg (Msg) returns (Res);
+}

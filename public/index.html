@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>WebSocket</title>
+    <link rel="stylesheet" href="./css/element.css">
+</head>
+
+<body>
+<img id="img" />
+<div id="app">
+    <div style="margin:2px;">
+        选择网关：
+        <el-select v-model="serverId" placeholder="选择服务器">
+            <el-option
+                    v-for="item of server"
+                    :key="item"
+                    :label="item"
+                    :value="item"
+            >
+            </el-option>
+        </el-select>
+    </div>
+    <div style="margin:2px;">
+        选择用户ID：
+        <el-select v-model="token" placeholder="选择用户" @change="selectUser">
+            <el-option
+                    v-for="item in user"
+                    :key="item.id"
+                    :label="item.id"
+                    :value="item.token"
+            >
+            </el-option>
+        </el-select>
+    </div>
+    <div style="margin:2px;">
+        <el-tag @click="connect" style="margin:2px;">连接</el-tag>
+        <el-tag type="danger" @click="out" style="margin:2px;">断开</el-tag>
+        <el-tag :type="type" style="margin:2px;">{{ result }}</el-tag>
+        <el-tag type="info" style="margin:2px;">{{ areaName }}</el-tag>
+    </div>
+    <el-link type="success">分配的游戏服务器地址：{{ game }}</el-link>
+    <div>该区域在线用户列表({{list.length}}/10)</div>
+    <div style="margin:2px;">
+        <el-tag type="success" v-for="item,index in list" :key="index" style="margin:2px;">{{ item }}</el-tag>
+    </div>
+    <div style="margin:2px;">
+        <el-input v-model="text" placeholder="请输入内容" style="margin:2px;"></el-input>
+        <el-button @click="sendAll" style="margin:2px;">群发</el-button>
+        <el-button @click="send" style="margin:2px;">私送</el-button>
+        <el-button @click="changeArea" style="margin:2px;">切换区域</el-button>
+        <el-button @click="getAreaInfo" style="margin:2px;">刷新</el-button>
+    </div>
+    <div style="height:520px;overflow-y: auto;" style="margin:2px;">
+        <div class="block">
+            <el-timeline>
+                <el-timeline-item v-for="item,index in msg" :key="index" timestamp="服务器消息"  placement="top">
+                    <el-card>
+                        <h4 v-if="item.fromId == id" style="color:red;">我</h4>
+                        <h4 v-else style="color:#0905ff;">来自用户Id: {{ item.fromId }}</h4>
+                        <p>{{ decodeURIComponent(item.content) }}</p>
+                    </el-card>
+                </el-timeline-item>
+            </el-timeline>
+        </div>
+    </div>
+</div>
+
+<script src="./js/vue.js"></script>
+<script src="./js/element.js"></script>
+<script>
+
+    var vm = new Vue({
+        el: '#app',
+        data() {
+            return {
+                ws:null,
+                result: '离线',
+                areaName: '区域编号',
+                game: '',
+                text: "",
+                type: "info",
+                msg: [],
+                list: [],
+                toId: 0,
+                serverId: 9312,
+                server: [9310,9311,9312],
+                user: [{
+                    id:1,
+                    token:'eyJhdmF0YXIiOm51bGwsImlkIjoxLCJzaWduIjoiNWVjZjIxNDE1ZDcyZDFhNzliNzdiM2FlZDVkNjU2NTEiLCJ0IjoxNjQ3NjE1NDI2LCJ1c2VybmFtZSI6IkJyZWFrIn0='
+                },{
+                    id:2,
+                    token:'eyJhdmF0YXIiOm51bGwsImlkIjoyLCJzaWduIjoiOTY4OTQ3OTM0YmZlZDZlMWViNTM2NDUxM2EyNDA1OTkiLCJ0IjoxNjQ3NzA2Nzg4LCJ1c2VybmFtZSI6IjQ3NDAyNDE1M0BxcS5jb20ifQ=='
+                },{
+                    id:3,
+                    token:'eyJhdmF0YXIiOm51bGwsImlkIjozLCJzaWduIjoiNTYwYjYwMjdmNzhlZTdmYTdjMTBkYmJmMTQzODFmOTAiLCJ0IjoxNjQ3NzU4MjA4LCJ1c2VybmFtZSI6IjI3OTM0Njk4MDZAcXEuY29tIn0=='
+                }
+                ],
+                token: "",
+                id: 0,
+                status:false // 状态 离线/在线
+            }
+        },
+        methods:{
+            connect(){
+                if (!this.status && this.id != 0){
+                    this.user.forEach(item=>{
+                        if (item.token == this.token) {
+                            this.id = item.id
+                        }
+                    })
+                    this.result = '连接中...'
+                    this.ws = new WebSocket("ws://127.0.0.1:"+this.serverId+"/ws/gateway?token="+this.token);
+                    this.ws.onopen = this.onopen
+                    this.ws.onmessage = this.onmessage
+                    this.ws.onclose = this.onclose
+                    this.ws.onerror = this.onerror
+                }
+            },
+            out(){
+                this.ws.close()
+            },
+            onopen(){
+                this.result = '在线'
+                this.type = 'success'
+                this.status = true
+            },
+            onmessage(e){
+                let res = JSON.parse(e.data)
+
+                if(res.action === 'Ping'){ return; }
+
+                switch (res.action) {
+                    case 'AreaJoin':
+                        if (res.fromId == this.id) {
+
+                        } else {
+                            this.list.push(res.fromId)
+                        }
+                        break
+                    case "AreaExit":
+                        this.list.remove(res.fromId)
+                        break
+                    case "Login":
+
+                        break
+                    case "Logout":
+                        if (res.fromId == this.id) {
+                            this.$message({
+                                message: res.content,
+                                type: 'warning'
+                            })
+                        }
+                        break
+                    case 'AreaInfo':
+                        this.list = res.list
+                        this.areaName = res.area.substring(16)
+                        this.game = res.game
+                        break
+                    case 'SendAllMsg':
+                        this.msg.unshift(res)
+                        break
+                    case 'SendMsg':
+                        this.msg.unshift(res)
+                        break
+                    case "Error":
+                        console.log(res)
+                        break
+                }
+            },
+            onclose(){
+                this.result = '离线'
+                this.areaName = '区域编号'
+                this.type = 'warning'
+                this.game = ''
+                this.status = false
+                this.list = []
+            },
+            onerror(){
+                this.result = '服务器连接失败'
+                this.type = 'danger'
+                this.status = false
+            },
+            send(){
+                if (this.text == '') {
+                    return
+                }
+                this.text = encodeURIComponent(this.text)
+                this.json(`{"action":"SendMsg","content":"${this.text}","toId":"2"}`) // 发给指定人
+                //this.text = ''
+            },
+            sendAll(){
+                if (this.text == '') {
+                    return
+                }
+                this.text = encodeURIComponent(this.text)
+                this.json(`{"action":"SendMsgArea","content":"${this.text}"}`) // 发给所有人
+                //this.text = ''
+            },
+            changeArea(){
+                this.json(`{"action":"ChangeArea"}`)
+                this.msg = []
+            },
+            getAreaInfo(){
+                this.json(`{"action":"GetAreaInfo"}`)
+            },
+            selectUser(e) {
+                if (this.status) {
+                    return
+                }
+                this.user.forEach(item=>{
+                    if (item.token == e) {
+                        this.id = item.id
+                    }
+                })
+            },
+            json(messages){
+                if (this.ws != null) {
+                    this.ws.send(messages)
+                }
+            },
+            date(time,fmt='yyyy-mm-dd hh:ii:ss'){
+                Date.prototype.format = function (fmt) {
+                    let o = {
+                        "m+": this.getMonth() + 1, //月份
+                        "d+": this.getDate(), //日
+                        "h+": this.getHours(), //小时
+                        "i+": this.getMinutes(), //分
+                        "s+": this.getSeconds(), //秒
+                        "q+": Math.floor((this.getMonth() + 3) / 3), //季度
+                        "S": this.getMilliseconds() //毫秒
+                    };
+                    if(/(y+)/.test(fmt)) fmt = fmt.replace(RegExp.$1, (this.getFullYear() + "").substr(4 - RegExp.$1.length));
+                    for (let k in o)
+                        if (new RegExp("(" + k + ")").test(fmt)) fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)));
+                    return fmt;
+                }
+                time = new Date(time*1000);
+                return time.format(fmt);//格式化时间
+            },
+        }
+    })
+
+    // 16 进制转 字节
+    function Str2Bytes(str){
+        var pos = 0;
+        var len = str.length;
+        if(len %2 != 0){
+            return null;
+        }
+        len /= 2;
+        var hexA = new Array();
+        for(var i=0; i<len; i++){
+            var s = str.substr(pos, 2);
+            var v = parseInt(s, 16);
+            hexA.push(v);
+            pos += 2;
+        }
+        return hexA;
+    }
+
+    // 字节转base64
+    function arrayBufferToBase64(buffer) {
+        var binary = '';
+        var bytes = new Uint8Array(buffer);
+        var len = bytes.byteLength;
+        for (var i = 0; i < len; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return window.btoa(binary);
+    }
+
+    // 删除数组中的元素
+    Array.prototype.remove = function(val) {
+        var index = this.indexOf(val);
+        if (index > -1) {
+            this.splice(index, 1);
+        }
+    }
+
+</script>
+</body>
+</html>

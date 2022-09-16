@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package manage;
+
+option go_package="study-server/bootstrap/grpc/proto/manage/manage;manage";
+
+// 节点
+message Node {
+  string id = 1; // 服务名称/服务id
+  string mode = 2; // 服务类型
+  string rpc = 3; // grpc服务地址
+  string udp = 4; // udp服务地址
+}
+
+// 节点列表
+message List {
+  string Action = 1;
+  Node node = 2; // 节点
+  repeated Node list = 3; // 节点列表
+}
+
+service ManageGrpc {
+  // 获取服务
+  rpc GetService (Node) returns (List);
+}
